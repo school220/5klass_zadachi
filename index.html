@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Математика 5 класс — Интерактивная доска</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1d4ed8;
+      --primary-hover: #1e40af;
+      --primary-light: #eff6ff;
+      --success: #15803d;
+      --success-light: #dcfce7;
+      --error: #b91c1c;
+      --error-light: #fee2e2;
+      --bg: #f1f5f9;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --border: #cbd5e1;
+      --grid-line: #cbd5e1;
+      --margin-line: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: manipulation;
+    }
+
+    /* Фиксированный макет под экраны интерактивных досок (16:9, без паразитной прокрутки страницы) */
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Верхняя панель управления доской */
+    header {
+      height: 64px;
+      background: #ffffff;
+      border-bottom: 2px solid var(--border);
+      padding: 0 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      z-index: 50;
+    }
+
+    .brand-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-badge {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #2563eb, #1e3a8a);
+      color: white;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 900;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+    }
+
+    .brand-text h1 {
+      font-family: 'Comfortaa', cursive;
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.1;
+    }
+
+    .brand-text span {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    /* Навигатор по номерам задач (крупные кнопки под палец) */
+    .task-selector {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      max-width: 58vw;
+      padding: 4px 0;
+      scrollbar-width: none;
+    }
+
+    .task-selector::-webkit-scrollbar {
+      display: none;
+    }
+
+    .num-btn {
+      min-width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      background: #ffffff;
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .num-btn:active {
+      transform: scale(0.92);
+    }
+
+    .num-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+      box-shadow: 0 4px 12px rgba(29, 78, 216, 0.35);
+    }
+
+    .num-btn.done {
+      background: #16a34a;
+      color: #ffffff;
+      border-color: #16a34a;
+    }
+
+    /* Кнопки действий в шапке */
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-btn {
+      height: 46px;
+      padding: 0 16px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      background: #ffffff;
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.15s;
+    }
+
+    .header-btn:hover {
+      background: var(--bg);
+      border-color: #94a3b8;
+    }
+
+    .header-btn:active {
+      transform: scale(0.95);
+    }
+
+    .header-btn.primary {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+    }
+
+    /* Основная рабочая зона: две колонки (100% высота экрана) */
+    .board-layout {
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(340px, 440px) 1fr;
+      gap: 16px;
+      padding: 14px 18px;
+      height: calc(100vh - 64px);
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    @media (max-width: 1280px) {
+      .board-layout {
+        grid-template-columns: minmax(320px, 390px) 1fr;
+        padding: 10px 14px;
+        gap: 12px;
+      }
+    }
+
+    @media (max-width: 900px) {
+      html, body {
+        overflow: auto;
+        height: auto;
+      }
+      .board-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+        overflow: visible;
+      }
+    }
+
+    /* ================= ЛЕВАЯ ПАНЕЛЬ (ЗАДАЧА + ЭКРАННЫЙ НУМПАД) ================= */
+    .left-panel {
+      background: var(--card-bg);
+      border: 2px solid var(--border);
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      padding: 18px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
+      overflow-y: auto;
+      scrollbar-width: thin;
+      min-width: 0;
+      width: 100%;
+    }
+
+    .task-badge-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .level-tag {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .level-1 { background: #dcfce7; color: #15803d; }
+    .level-2 { background: #fef9c3; color: #a16207; }
+    .level-3 { background: #ffedd5; color: #c2410c; }
+    .level-4 { background: #fee2e2; color: #b91c1c; }
+
+    .score-tag {
+      font-size: 14px;
+      font-weight: 800;
+      color: #15803d;
+      background: #f0fdf4;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid #bbf7d0;
+    }
+
+    .task-title {
+      font-size: 21px;
+      font-weight: 900;
+      color: var(--text);
+      margin-bottom: 10px;
+      line-height: 1.25;
+    }
+
+    .task-desc {
+      font-size: 16.5px;
+      line-height: 1.45;
+      color: #1e293b;
+      font-weight: 700;
+      background: #f8fafc;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border-left: 5px solid var(--primary);
+      margin-bottom: 10px;
+    }
+
+    /* Поля ввода ответа (название над полем, 100% ширина, без вылезания) */
+    .answer-fields-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 10px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .field-row {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 4px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .field-row label {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text-muted);
+      width: 100%;
+    }
+
+    .touch-input {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      height: 46px;
+      background: #f8fafc;
+      border: 3px solid #cbd5e1;
+      border-radius: 12px;
+      font-size: 20px;
+      font-weight: 800;
+      text-align: center;
+      color: var(--text);
+      outline: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-sizing: border-box;
+    }
+
+    .touch-input.focused {
+      border-color: var(--primary);
+      background: #ffffff;
+      box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.2);
+    }
+
+    /* Встроенная крупная экранная клавиатура под палец на доске */
+    .numpad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 10px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .key-btn {
+      height: 44px;
+      background: #f1f5f9;
+      border: 2px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.1s;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+
+    .key-btn:active {
+      background: #cbd5e1;
+      transform: scale(0.95);
+    }
+
+    .key-btn.action-clear {
+      background: #fee2e2;
+      color: var(--error);
+      border-color: #fca5a5;
+    }
+
+    .key-btn.action-back {
+      background: #e2e8f0;
+      font-size: 19px;
+    }
+
+    .key-btn.action-thousand {
+      font-size: 16px;
+      color: var(--primary);
+      font-weight: 900;
+      background: var(--primary-light);
+      border-color: #bfdbfe;
+    }
+
+    /* Кнопки проверки и перехода */
+    .action-buttons-box {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .big-btn {
+      height: 48px;
+      border-radius: 12px;
+      font-size: 16.5px;
+      font-weight: 900;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.15s;
+    }
+
+    .big-btn:active {
+      transform: scale(0.96);
+    }
+
+    .btn-verify {
+      background: var(--primary);
+      color: #ffffff;
+      flex: 1;
+      box-shadow: 0 4px 14px rgba(29, 78, 216, 0.3);
+    }
+
+    .btn-forward {
+      background: #16a34a;
+      color: #ffffff;
+      flex: 1;
+      display: none;
+      box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35);
+      animation: bouncePulse 1.2s infinite;
+    }
+
+    @keyframes bouncePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+    }
+
+    .btn-help {
+      background: #e2e8f0;
+      color: #334155;
+      padding: 0 16px;
+    }
+
+    /* Блок обратной связи (результат проверки) */
+    .result-alert {
+      margin-top: 12px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 17px;
+      font-weight: 800;
+      display: none;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .result-alert.ok {
+      background: var(--success-light);
+      color: var(--success);
+      border: 2px solid #86efac;
+      display: flex;
+    }
+
+    .result-alert.fail {
+      background: var(--error-light);
+      color: var(--error);
+      border: 2px solid #fca5a5;
+      display: flex;
+    }
+
+    /* ================= ПРАВАЯ ПАНЕЛЬ: ЭЛЕКТРОННАЯ ДОСКА В КЛЕТКУ ================= */
+    .board-container {
+      background: #ffffff;
+      border: 2px solid var(--border);
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Панель инструментов доски (крупные иконки под палец) */
+    .canvas-tools-bar {
+      height: 64px;
+      background: #ffffff;
+      border-bottom: 2px solid var(--border);
+      padding: 0 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+
+    .tools-subgroup {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .touch-tool-btn {
+      width: 50px;
+      height: 50px;
+      border-radius: 14px;
+      border: 2px solid var(--border);
+      background: #ffffff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      transition: all 0.15s;
+    }
+
+    .touch-tool-btn:hover {
+      background: #f8fafc;
+    }
+
+    .touch-tool-btn:active {
+      transform: scale(0.92);
+    }
+
+    .touch-tool-btn.active {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+
+    /* Цветовые круги */
+    .color-picker-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 3px solid #ffffff;
+      box-shadow: 0 0 0 2px var(--border);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .color-picker-btn.active {
+      transform: scale(1.18);
+      box-shadow: 0 0 0 3px var(--primary);
+    }
+
+    /* Толщина линии */
+    .width-selector-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      background: #ffffff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .width-selector-btn.active {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .line-circle {
+      border-radius: 50%;
+      background: #0f172a;
+    }
+
+    /* Сам холст (школьная тетрадь в клетку 26x26px + красные поля) */
+    .whiteboard-wrapper {
+      flex: 1;
+      position: relative;
+      background-color: #ffffff;
+      /* Школьная клетка 26px */
+      background-image: 
+        linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+      background-size: 26px 26px;
+      cursor: crosshair;
+      overflow: hidden;
+    }
+
+    /* Красная линия школьных полей слева */
+    .whiteboard-wrapper::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 78px; /* 3 клетки слева */
+      width: 2.5px;
+      background: var(--margin-line);
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      touch-action: none !important;
+    }
+
+    /* Подсказка по доске */
+    .board-hint-badge {
+      position: absolute;
+      bottom: 12px;
+      right: 14px;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(4px);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* Модальное окно решения */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(6px);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-card {
+      background: #ffffff;
+      border-radius: 24px;
+      max-width: 650px;
+      width: 100%;
+      padding: 32px;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+    }
+
+    .modal-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-heading {
+      font-size: 24px;
+      font-weight: 900;
+      color: var(--primary);
+    }
+
+    .modal-btn-close {
+      width: 44px;
+      height: 44px;
+      background: #f1f5f9;
+      border: none;
+      border-radius: 50%;
+      font-size: 20px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .modal-steps ol {
+      padding-left: 24px;
+      font-size: 18px;
+      line-height: 1.65;
+      font-weight: 700;
+      color: #334155;
+    }
+
+    .modal-steps li {
+      margin-bottom: 10px;
+    }
+
+    .modal-final {
+      margin-top: 20px;
+      background: var(--primary-light);
+      border-left: 5px solid var(--primary);
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 19px;
+      font-weight: 900;
+      color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ВЕРХНЯЯ ПАНЕЛЬ -->
+  <header>
+    <div class="brand-box">
+      <div class="brand-badge">5</div>
+      <div class="brand-text">
+        <h1>Математика</h1>
+        <span>Электронная доска</span>
+      </div>
+    </div>
+
+    <!-- Кнопки выбора задач 1–20 -->
+    <div class="task-selector" id="task-selector"></div>
+
+    <div class="header-actions">
+      <button class="header-btn" onclick="toggleFullscreen()" title="На весь экран">
+        <span id="fs-icon">⛶</span> Во весь экран
+      </button>
+    </div>
+  </header>
+
+  <!-- ОСНОВНАЯ ЗОНА -->
+  <div class="board-layout">
+
+    <!-- ЛЕВАЯ КОЛОНКА (УСЛОВИЕ + ЭКРАННЫЙ НУМПАД) -->
+    <aside class="left-panel">
+      <div class="task-badge-row">
+        <div class="level-tag" id="level-tag">Уровень 1. Начальный</div>
+        <div class="score-tag" id="score-tag">Решено: 0 / 20 ⭐</div>
+      </div>
+
+      <h2 class="task-title" id="task-title">Задача 1</h2>
+      <div class="task-desc" id="task-desc">Загрузка условия...</div>
+
+      <!-- Поля ввода ответа -->
+      <div class="answer-fields-container" id="answer-fields"></div>
+
+      <!-- Экранный калькулятор-нумпад под палец/стилус -->
+      <div class="numpad-grid">
+        <button class="key-btn" onclick="typeDigit('1')">1</button>
+        <button class="key-btn" onclick="typeDigit('2')">2</button>
+        <button class="key-btn" onclick="typeDigit('3')">3</button>
+
+        <button class="key-btn" onclick="typeDigit('4')">4</button>
+        <button class="key-btn" onclick="typeDigit('5')">5</button>
+        <button class="key-btn" onclick="typeDigit('6')">6</button>
+
+        <button class="key-btn" onclick="typeDigit('7')">7</button>
+        <button class="key-btn" onclick="typeDigit('8')">8</button>
+        <button class="key-btn" onclick="typeDigit('9')">9</button>
+
+        <button class="key-btn action-clear" onclick="clearActiveInput()">С</button>
+        <button class="key-btn" onclick="typeDigit('0')">0</button>
+        <button class="key-btn action-thousand" onclick="typeDigit('000')">000</button>
+      </div>
+
+      <div class="action-buttons-box">
+        <button class="big-btn action-back key-btn" style="flex: 0 0 65px; height: 54px;" onclick="backspaceInput()" title="Стереть символ">⌫</button>
+        <button class="big-btn btn-verify" id="btn-verify" onclick="verifyAnswer()">Проверить ответ ➔</button>
+        <button class="big-btn btn-forward" id="btn-forward" onclick="goToNextTask()">Следующая задача ➔</button>
+        <button class="big-btn btn-help" onclick="showModalSolution()">💡</button>
+      </div>
+
+      <div class="result-alert" id="result-alert"></div>
+    </aside>
+
+    <!-- ПРАВАЯ КОЛОНКА (ЭЛЕКТРОННАЯ ТЕТРАДЬ В КЛЕТКУ) -->
+    <main class="board-container">
+      <div class="canvas-tools-bar">
+        <!-- Инструменты: Ручка / Ластик -->
+        <div class="tools-subgroup">
+          <button class="touch-tool-btn active" id="tool-pen-btn" onclick="setDrawingTool('pen')" title="Ручка">✏️</button>
+          <button class="touch-tool-btn" id="tool-eraser-btn" onclick="setDrawingTool('eraser')" title="Ластик">🧹</button>
+        </div>
+
+        <!-- 4 школьных цвета -->
+        <div class="tools-subgroup">
+          <button class="color-picker-btn active" style="background: #1d4ed8;" onclick="setDrawingColor('#1d4ed8', this)" title="Синий"></button>
+          <button class="color-picker-btn" style="background: #0f172a;" onclick="setDrawingColor('#0f172a', this)" title="Чёрный"></button>
+          <button class="color-picker-btn" style="background: #dc2626;" onclick="setDrawingColor('#dc2626', this)" title="Красный"></button>
+          <button class="color-picker-btn" style="background: #16a34a;" onclick="setDrawingColor('#16a34a', this)" title="Зелёный"></button>
+        </div>
+
+        <!-- Толщина пера -->
+        <div class="tools-subgroup">
+          <button class="width-selector-btn" onclick="setStrokeWidth(3, this)" title="Тонкая"><div class="line-circle" style="width: 5px; height: 5px;"></div></button>
+          <button class="width-selector-btn active" onclick="setStrokeWidth(6, this)" title="Средняя"><div class="line-circle" style="width: 10px; height: 10px;"></div></button>
+          <button class="width-selector-btn" onclick="setStrokeWidth(14, this)" title="Широкая"><div class="line-circle" style="width: 18px; height: 18px;"></div></button>
+        </div>
+
+        <!-- Отмена и Очистить -->
+        <div class="tools-subgroup">
+          <button class="touch-tool-btn" onclick="undoCanvas()" title="Шаг назад">↩️</button>
+          <button class="touch-tool-btn" onclick="clearCanvas()" title="Очистить доску">🗑️</button>
+        </div>
+      </div>
+
+      <!-- Рабочая зона в клетку -->
+      <div class="whiteboard-wrapper" id="canvas-wrapper">
+        <canvas id="paint-canvas"></canvas>
+        <div class="board-hint-badge">Электронная тетрадь в клетку • Пишите стилусом или пальцем</div>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- МОДАЛЬНОЕ ОКНО ПОДРОБНОГО РЕШЕНИЯ -->
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-top">
+        <h3 class="modal-heading" id="modal-heading">Решение задачи</h3>
+        <button class="modal-btn-close" onclick="closeModalSolution()">✕</button>
+      </div>
+      <div class="modal-steps" id="modal-steps"></div>
+      <div class="modal-final" id="modal-final"></div>
+    </div>
+  </div>
+
+  <script>
+    /* ================= 20 ВЫВЕРЕННЫХ ЗАДАЧ ДЛЯ 5 КЛАССА ================= */
+    const TASK_BANK = [
+      {
+        id: 1,
+        level: "Уровень 1. Начальный",
+        levelClass: "level-1",
+        title: "Стоимость канцтоваров",
+        desc: "Алишер купил в магазине 4 кисточки для рисования по цене 5 000 сумов за штуку и набор акварельных красок за 25 000 сумов. Сколько всего сумов заплатил Алишер за покупку?",
+        inputs: [{ label: "Сумма (сумов):", key: "total", ans: "45000" }],
+        steps: [
+          "4 • 5 000 = 20 000 (сумов) — стоимость четырёх кисточек.",
+          "20 000 + 25 000 = 45 000 (сумов) — общая стоимость всей покупки."
+        ],
+        answer: "45 000 сумов"
+      },
+      {
+        id: 2,
+        level: "Уровень 1. Начальный",
+        levelClass: "level-1",
+        title: "Книги в библиотеке",
+        desc: "В школьной библиотеке на одной полке стоит 18 сборников сказок, а на второй — в 4 раза больше книг о путешествиях. Сколько всего книг стоит на этих двух полках?",
+        inputs: [{ label: "Всего книг:", key: "books", ans: "90" }],
+        steps: [
+          "18 • 4 = 72 (книги) — книг о путешествиях на второй полке.",
+          "18 + 72 = 90 (книг) — всего книг на двух полках."
+        ],
+        answer: "90 книг"
+      },
+      {
+        id: 3,
+        level: "Уровень 1. Начальный",
+        levelClass: "level-1",
+        title: "Остаток карманных денег",
+        desc: "У Мурада было 70 000 сумов. Он купил флеш-карту за 42 000 сумов и защитный чехол к ней за 18 000 сумов. Сколько сумов сдачи осталось у Мурада?",
+        inputs: [{ label: "Сдача (сумов):", key: "change", ans: "10000" }],
+        steps: [
+          "42 000 + 18 000 = 60 000 (сумов) — потрачено на покупки.",
+          "70 000 - 60 000 = 10 000 (сумов) — сдача Мурада."
+        ],
+        answer: "10 000 сумов"
+      },
+      {
+        id: 4,
+        level: "Уровень 1. Начальный",
+        levelClass: "level-1",
+        title: "Периметр спортивного коврика",
+        desc: "Длина гимнастического коврика равна 180 см, а его ширина — на 120 см меньше длины. Найдите периметр этого коврика (длину окантовки по краю).",
+        inputs: [{ label: "Периметр (см):", key: "p", ans: "480" }],
+        steps: [
+          "180 - 120 = 60 (см) — ширина коврика.",
+          "(180 + 60) • 2 = 240 • 2 = 480 (см) — периметр коврика."
+        ],
+        answer: "480 см"
+      },
+      {
+        id: 5,
+        level: "Уровень 1. Начальный",
+        levelClass: "level-1",
+        title: "Билеты в планетарий",
+        desc: "За 4 одинаковых билета в планетарий заплатили 36 000 сумов. Сколько сумов нужно заплатить за 6 таких же билетов?",
+        inputs: [{ label: "Стоимость (сумов):", key: "price", ans: "54000" }],
+        steps: [
+          "36 000 : 4 = 9 000 (сумов) — цена одного билета.",
+          "9 000 • 6 = 54 000 (сумов) — стоимость шести билетов."
+        ],
+        answer: "54 000 сумов"
+      },
+      {
+        id: 6,
+        level: "Уровень 2. Базовый",
+        levelClass: "level-2",
+        title: "Расстановка флажков",
+        desc: "Для оформления школьного коридора нужно расставить 46 праздничных флажков в подставки, по 6 флажков в каждую. Какое наименьшее количество таких подставок потребуется, чтобы расставить абсолютно все флажки?",
+        inputs: [{ label: "Подставок:", key: "stands", ans: "8" }],
+        steps: [
+          "46 : 6 = 7 (ост. 4) — 7 полных подставок и 4 флажка останется.",
+          "Для оставшихся 4 флажков потребуется ещё одна подставка: 7 + 1 = 8 (подставок)."
+        ],
+        answer: "8 подставок"
+      },
+      {
+        id: 7,
+        level: "Уровень 2. Базовый",
+        levelClass: "level-2",
+        title: "Встречное движение самокатов",
+        desc: "Два школьника выехали одновременно на самокатах навстречу друг другу из двух домов и встретились через 3 часа. Скорость первого — 8 км/ч, а второго — 9 км/ч. Каково расстояние между домами?",
+        inputs: [{ label: "Расстояние (км):", key: "s", ans: "51" }],
+        steps: [
+          "8 + 9 = 17 (км/ч) — скорость сближения мальчиков.",
+          "17 • 3 = 51 (км) — расстояние между домами."
+        ],
+        answer: "51 км"
+      },
+      {
+        id: 8,
+        level: "Уровень 2. Базовый",
+        levelClass: "level-2",
+        title: "Движение в противоположные стороны",
+        desc: "От пристани одновременно в противоположных направлениях отошли два катера по озеру со спокойной водой. Скорость первого катера — 22 км/ч, а второго — 25 км/ч. Какое расстояние будет между ними через 2 часа?",
+        inputs: [{ label: "Расстояние (км):", key: "s", ans: "94" }],
+        steps: [
+          "22 + 25 = 47 (км/ч) — скорость удаления катеров друг от друга.",
+          "47 • 2 = 94 (км) — расстояние между катерами через 2 часа."
+        ],
+        answer: "94 км"
+      },
+      {
+        id: 9,
+        level: "Уровень 2. Базовый",
+        levelClass: "level-2",
+        title: "Периметр и площадь доски",
+        desc: "Длина школьной доски равна 240 см, а её ширина — на 140 см меньше длины. Найдите периметр доски (в см) и её площадь (в см²).",
+        inputs: [
+          { label: "Периметр (см):", key: "p", ans: "680" },
+          { label: "Площадь (см²):", key: "s", ans: "24000" }
+        ],
+        steps: [
+          "240 - 140 = 100 (см) — ширина доски.",
+          "(240 + 100) • 2 = 340 • 2 = 680 (см) — периметр доски.",
+          "240 • 100 = 24 000 (см²) — площадь доски."
+        ],
+        answer: "Периметр — 680 см, площадь — 24 000 см²"
+      },
+      {
+        id: 10,
+        level: "Уровень 2. Базовый",
+        levelClass: "level-2",
+        title: "Тубусы для чертежей",
+        desc: "Для кружка черчения Анвар купил 3 одинаковых тубуса, а Даврон — 6 таких же тубусов. Даврон заплатил на 45 000 сумов больше, чем Анвар. Сколько сумов стоит один тубус?",
+        inputs: [{ label: "Цена 1 тубуса (сумов):", key: "price", ans: "15000" }],
+        steps: [
+          "6 - 3 = 3 (тубуса) — на столько больше купил Даврон.",
+          "45 000 : 3 = 15 000 (сумов) — цена одного тубуса."
+        ],
+        answer: "15 000 сумов"
+      },
+      {
+        id: 11,
+        level: "Уровень 3. Средний",
+        levelClass: "level-3",
+        title: "Копилки сестёр",
+        desc: "Две сестры, Лола и Дильноза, накопили вместе 210 000 сумов. У Лолы на 30 000 сумов больше, чем у Дильнозы. Сколько сумов накопила каждая сестра?",
+        inputs: [
+          { label: "У Дильнозы (сумов):", key: "d", ans: "90000" },
+          { label: "У Лолы (сумов):", key: "l", ans: "120000" }
+        ],
+        steps: [
+          "210 000 - 30 000 = 180 000 (сумов) — уравниваем суммы по меньшей.",
+          "180 000 : 2 = 90 000 (сумов) — накопила Дильноза.",
+          "90 000 + 30 000 = 120 000 (сумов) — накопила Лола."
+        ],
+        answer: "У Дильнозы — 90 000 сумов, у Лолы — 120 000 сумов"
+      },
+      {
+        id: 12,
+        level: "Уровень 3. Средний",
+        levelClass: "level-3",
+        title: "Ремонт школьных парт",
+        desc: "Два плотника ремонтируют школьные парты. Первый плотник ремонтирует 3 парты за один час, а второй — 4 парты за час. Сколько парт они отремонтируют вместе, если будут работать одновременно в течение 8 часов?",
+        inputs: [{ label: "Всего парт:", key: "desks", ans: "56" }],
+        steps: [
+          "3 + 4 = 7 (парт/ч) — совместная производительность за 1 час.",
+          "7 • 8 = 56 (парт) — отремонтируют вместе за 8 часов."
+        ],
+        answer: "56 парт"
+      },
+      {
+        id: 13,
+        level: "Уровень 3. Средний",
+        levelClass: "level-3",
+        title: "Моторная лодка на реке",
+        desc: "Собственная скорость моторной лодки равна 17 км/ч, а скорость течения реки — 3 км/ч. Какое расстояние проплывёт эта лодка за 4 часа, двигаясь по течению реки?",
+        inputs: [{ label: "Расстояние (км):", key: "s", ans: "80" }],
+        steps: [
+          "17 + 3 = 20 (км/ч) — скорость лодки по течению реки.",
+          "20 • 4 = 80 (км) — расстояние за 4 часа."
+        ],
+        answer: "80 км"
+      },
+      {
+        id: 14,
+        level: "Уровень 3. Средний",
+        levelClass: "level-3",
+        title: "Секция плавания",
+        desc: "В секции плавания занимаются 48 ребят: новички и опытные пловцы. Опытных ребят в секции в 3 раза больше, чем новичков. Сколько новичков и сколько опытных пловцов тренируется в секции?",
+        inputs: [
+          { label: "Новичков:", key: "nov", ans: "12" },
+          { label: "Опытных:", key: "exp", ans: "36" }
+        ],
+        steps: [
+          "1 + 3 = 4 (части) — составляют все ребята (1 часть — новички, 3 части — опытные).",
+          "48 : 4 = 12 (новичков) — приходится на одну часть.",
+          "12 • 3 = 36 (пловцов) — опытные ребята."
+        ],
+        answer: "12 новичков и 36 опытных пловцов"
+      },
+      {
+        id: 15,
+        level: "Уровень 3. Средний",
+        levelClass: "level-3",
+        title: "Яма с песком для прыжков",
+        desc: "На стадионе обустроили яму с песком для прыжков в длину. Длина ямы 6 м, ширина 3 м, глубина 1 м. Найдите объём ямы (в м³) и сколько литров песка в неё помещается (1 м³ = 1 000 литров).",
+        inputs: [
+          { label: "Объём (м³):", key: "v", ans: "18" },
+          { label: "Литров песка:", key: "l", ans: "18000" }
+        ],
+        steps: [
+          "V = 6 • 3 • 1 = 18 (м³) — объём ямы.",
+          "18 • 1 000 = 18 000 (литров) — вместимость в литрах."
+        ],
+        answer: "18 м³; 18 000 литров"
+      },
+      {
+        id: 16,
+        level: "Уровень 4. Закрепление и логика",
+        levelClass: "level-4",
+        title: "Движение вдогонку",
+        desc: "Расстояние между двумя туристами на горной тропе составляет 15 км. Они одновременно пошли в одном направлении. Первый турист идёт со скоростью 6 км/ч, а второй, идущий впереди него, — со скоростью 3 км/ч. Через сколько часов первый турист догонит второго?",
+        inputs: [{ label: "Время (часов):", key: "t", ans: "5" }],
+        steps: [
+          "6 - 3 = 3 (км/ч) — скорость сближения туристов.",
+          "15 : 3 = 5 (ч) — время, через которое первый турист догонит второго."
+        ],
+        answer: "через 5 часов"
+      },
+      {
+        id: 17,
+        level: "Уровень 4. Закрепление и логика",
+        levelClass: "level-4",
+        title: "Покупка футболок",
+        desc: "У Отабека было 180 000 сумов. Сначала он купил футбольный мяч за 90 000 сумов. На все оставшиеся деньги он купил 3 одинаковые спортивные футболки. Сколько сумов стоила одна футболка?",
+        inputs: [{ label: "Цена футболки (сумов):", key: "price", ans: "30000" }],
+        steps: [
+          "180 000 - 90 000 = 90 000 (сумов) — осталось после покупки мяча.",
+          "90 000 : 3 = 30 000 (сумов) — цена одной футболки."
+        ],
+        answer: "30 000 сумов"
+      },
+      {
+        id: 18,
+        level: "Уровень 4. Закрепление и логика",
+        levelClass: "level-4",
+        title: "Саженцы сирени и жасмина",
+        desc: "В школьном саду посадили кусты сирени и жасмина. Кустов сирени посадили в 5 раз больше, чем жасмина. При этом сирени оказалось на 32 куста больше, чем жасмина. Сколько кустов жасмина и сколько кустов сирени посадили?",
+        inputs: [
+          { label: "Кустов жасмина:", key: "j", ans: "8" },
+          { label: "Кустов сирени:", key: "s", ans: "40" }
+        ],
+        steps: [
+          "5 - 1 = 4 (части) — разница между сиренью и жасмином.",
+          "32 : 4 = 8 (кустов) — приходится на одну часть (жасмин).",
+          "8 • 5 = 40 (кустов) — посадили сирени."
+        ],
+        answer: "8 кустов жасмина и 40 кустов сирени"
+      },
+      {
+        id: 19,
+        level: "Уровень 4. Закрепление и логика",
+        levelClass: "level-4",
+        title: "Карандаши в пеналах",
+        desc: "В двух пеналах лежало поровну цветных карандашей. Из первого пенала вынули 6 карандашей и переложили их во второй. После этого во втором пенале стало в 3 раза больше карандашей, чем в первом. Сколько карандашей было в каждом пенале изначально?",
+        inputs: [{ label: "Было в пенале (шт):", key: "pencils", ans: "12" }],
+        steps: [
+          "6 + 6 = 12 (карандашей) — разница между пеналами после перекладывания.",
+          "3 - 1 = 2 (части) — разница в частях.",
+          "12 : 2 = 6 (карандашей) — осталось в первом пенале.",
+          "6 + 6 = 12 (карандашей) — было в каждом пенале изначально."
+        ],
+        answer: "12 карандашей"
+      },
+      {
+        id: 20,
+        level: "Уровень 4. Олимпиадный финал",
+        levelClass: "level-4",
+        title: "Билеты в музей (Метод предположения)",
+        desc: "Для экскурсии в музей купили 20 билетов: детские по 10 000 сумов и взрослые по 20 000 сумов. Всего заплатили 260 000 сумов. Сколько было куплено детских билетов и сколько взрослых?",
+        inputs: [
+          { label: "Детских билетов:", key: "kids", ans: "14" },
+          { label: "Взрослых билетов:", key: "adults", ans: "6" }
+        ],
+        steps: [
+          "Предположим, что все 20 билетов были детскими: 20 • 10 000 = 200 000 (сумов).",
+          "Разница с реальной суммой: 260 000 - 200 000 = 60 000 (сумов).",
+          "Замена одного детского билета на взрослый добавляет: 20 000 - 10 000 = 10 000 (сумов).",
+          "Количество взрослых билетов: 60 000 : 10 000 = 6 (билетов).",
+          "Количество детских билетов: 20 - 6 = 14 (билетов)."
+        ],
+        answer: "14 детских билетов и 6 взрослых билетов"
+      }
+    ];
+
+    /* ================= СОСТОЯНИЕ И ЛОГИКА ДОСКИ ================= */
+    let curIndex = 0;
+    let solvedSet = new Set();
+    let drawingsMap = {}; // Сохранение штрихов ученика под каждую задачу
+    let activeInputKey = null;
+
+    const taskSelector = document.getElementById('task-selector');
+    const levelTag = document.getElementById('level-tag');
+    const scoreTag = document.getElementById('score-tag');
+    const taskTitle = document.getElementById('task-title');
+    const taskDesc = document.getElementById('task-desc');
+    const answerFields = document.getElementById('answer-fields');
+    const btnVerify = document.getElementById('btn-verify');
+    const btnForward = document.getElementById('btn-forward');
+    const resultAlert = document.getElementById('result-alert');
+
+    // Инициализация кнопок выбора задачи
+    function setupTaskSelector() {
+      taskSelector.innerHTML = '';
+      TASK_BANK.forEach((t, idx) => {
+        const btn = document.createElement('button');
+        btn.className = `num-btn ${idx === curIndex ? 'active' : ''} ${solvedSet.has(idx) ? 'done' : ''}`;
+        btn.textContent = t.id;
+        btn.onclick = () => switchToTask(idx);
+        taskSelector.appendChild(btn);
+      });
+    }
+
+    // Загрузка задачи
+    function switchToTask(idx) {
+      saveDrawingState();
+      curIndex = idx;
+      const t = TASK_BANK[curIndex];
+
+      levelTag.className = `level-tag ${t.levelClass}`;
+      levelTag.textContent = t.level;
+      scoreTag.textContent = `Решено: ${solvedSet.size} / ${TASK_BANK.length} ⭐`;
+      taskTitle.textContent = `Задача ${t.id}. ${t.title}`;
+      taskDesc.textContent = t.desc;
+
+      // Создание полей под ответ
+      answerFields.innerHTML = '';
+      const savedAnswers = userAnswersMap[curIndex] || {};
+
+      t.inputs.forEach((inp, i) => {
+        const val = savedAnswers[inp.key] || '';
+        const row = document.createElement('div');
+        row.className = 'field-row';
+        row.innerHTML = `
+          <label>${inp.label}</label>
+          <input type="text" class="touch-input ${i === 0 ? 'focused' : ''}" data-key="${inp.key}" readonly value="${val}" placeholder="___" onclick="focusInputField('${inp.key}')">
+        `;
+        answerFields.appendChild(row);
+      });
+
+      activeInputKey = t.inputs[0].key;
+
+      if (solvedSet.has(curIndex)) {
+        resultAlert.className = 'result-alert ok';
+        resultAlert.innerHTML = '🎉 <b>Эта задача уже успешно решена!</b>';
+        resultAlert.style.display = 'flex';
+        btnVerify.style.display = 'none';
+        btnForward.style.display = 'flex';
+      } else {
+        resultAlert.style.display = 'none';
+        btnVerify.style.display = 'flex';
+        btnForward.style.display = 'none';
+      }
+
+      setupTaskSelector();
+      restoreDrawingState();
+    }
+
+    // Хранилище введенных ответов ученика
+    let userAnswersMap = {};
+
+    // Фокус на конкретное поле ввода
+    function focusInputField(key) {
+      activeInputKey = key;
+      document.querySelectorAll('.touch-input').forEach(inp => {
+        inp.classList.toggle('focused', inp.dataset.key === key);
+      });
+    }
+
+    // Ввод цифры с экранного нумпада или клавиатуры
+    function typeDigit(val) {
+      if (!activeInputKey) return;
+      const targetInput = document.querySelector(`.touch-input[data-key="${activeInputKey}"]`);
+      if (targetInput) {
+        if (targetInput.value.length < 12) {
+          targetInput.value += val;
+          if (!userAnswersMap[curIndex]) userAnswersMap[curIndex] = {};
+          userAnswersMap[curIndex][activeInputKey] = targetInput.value;
+        }
+      }
+    }
+
+    // Стирание последнего символа
+    function backspaceInput() {
+      if (!activeInputKey) return;
+      const targetInput = document.querySelector(`.touch-input[data-key="${activeInputKey}"]`);
+      if (targetInput) {
+        targetInput.value = targetInput.value.slice(0, -1);
+        if (!userAnswersMap[curIndex]) userAnswersMap[curIndex] = {};
+        userAnswersMap[curIndex][activeInputKey] = targetInput.value;
+      }
+    }
+
+    // Полная очистка активного поля
+    function clearActiveInput() {
+      if (!activeInputKey) return;
+      const targetInput = document.querySelector(`.touch-input[data-key="${activeInputKey}"]`);
+      if (targetInput) {
+        targetInput.value = '';
+        if (userAnswersMap[curIndex]) delete userAnswersMap[curIndex][activeInputKey];
+      }
+    }
+
+    // Высокоточная проверка ответа
+    function verifyAnswer() {
+      const t = TASK_BANK[curIndex];
+      const inputs = document.querySelectorAll('.touch-input');
+      let allRight = true;
+
+      inputs.forEach(inp => {
+        const key = inp.dataset.key;
+        const target = t.inputs.find(item => item.key === key);
+        
+        // Извлекаем только чистые цифры: гарантирует совпадение и для 45000, и для 45 000
+        const userVal = inp.value.replace(/\D/g, '');
+        const correctVal = target.ans.replace(/\D/g, '');
+
+        if (!userVal || userVal !== correctVal) {
+          allRight = false;
+          inp.style.borderColor = 'var(--error)';
+        } else {
+          inp.style.borderColor = '#16a34a';
+        }
+      });
+
+      if (allRight) {
+        resultAlert.className = 'result-alert ok';
+        resultAlert.innerHTML = '🎉 <b>Отлично! Абсолютно верный ответ!</b>';
+        resultAlert.style.display = 'flex';
+
+        btnVerify.style.display = 'none';
+        btnForward.style.display = 'flex';
+
+        solvedSet.add(curIndex);
+        scoreTag.textContent = `Решено: ${solvedSet.size} / ${TASK_BANK.length} ⭐`;
+        setupTaskSelector();
+      } else {
+        resultAlert.className = 'result-alert fail';
+        resultAlert.innerHTML = '🤔 <b>Пока неверно.</b> Проверьте вычисления на доске справа и попробуйте ещё раз!';
+        resultAlert.style.display = 'flex';
+      }
+    }
+
+    // Поддержка физической клавиатуры (для учителей с ноутбука или беспроводного пульта)
+    window.addEventListener('keydown', (e) => {
+      // Закрытие решения по Escape
+      if (e.key === 'Escape') {
+        closeModalSolution();
+        return;
+      }
+      if (document.getElementById('modal-backdrop').classList.contains('open')) return;
+
+      // Цифры 0-9
+      if (e.key >= '0' && e.key <= '9') {
+        typeDigit(e.key);
+      } else if (e.key === 'Backspace') {
+        backspaceInput();
+      } else if (e.key === 'Delete' || e.key === 'c' || e.key === 'C' || e.key === 'с' || e.key === 'С') {
+        clearActiveInput();
+      } else if (e.key === 'Enter') {
+        if (btnForward.style.display !== 'none') {
+          goToNextTask();
+        } else {
+          verifyAnswer();
+        }
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        const inputs = Array.from(document.querySelectorAll('.touch-input'));
+        if (inputs.length > 1) {
+          const curIdx = inputs.findIndex(inp => inp.dataset.key === activeInputKey);
+          const nextIdx = (curIdx + 1) % inputs.length;
+          focusInputField(inputs[nextIdx].dataset.key);
+        }
+      }
+    });
+
+    // Переход к следующей задаче
+    function goToNextTask() {
+      if (curIndex < TASK_BANK.length - 1) {
+        switchToTask(curIndex + 1);
+      } else {
+        alert('Поздравляем! Вы решили все 20 задач математического тренажёра!');
+      }
+    }
+
+    // Модальное окно решения
+    function showModalSolution() {
+      const t = TASK_BANK[curIndex];
+      document.getElementById('modal-heading').textContent = `Решение задачи ${t.id}`;
+      let html = '<ol>';
+      t.steps.forEach(st => { html += `<li>${st}</li>`; });
+      html += '</ol>';
+      document.getElementById('modal-steps').innerHTML = html;
+      document.getElementById('modal-final').textContent = `Правильный ответ: ${t.answer}`;
+      document.getElementById('modal-backdrop').classList.add('open');
+    }
+
+    function closeModalSolution() {
+      document.getElementById('modal-backdrop').classList.remove('open');
+    }
+
+    // Полноэкранный режим для интерактивной доски
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+        document.getElementById('fs-icon').textContent = '🗗';
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+        document.getElementById('fs-icon').textContent = '⛶';
+      }
+    }
+
+    /* ================= ДВИЖОК ЭЛЕКТРОННОЙ ДОСКИ (TOUCH / POINTER) ================= */
+    const canvas = document.getElementById('paint-canvas');
+    const ctx = canvas.getContext('2d', { desynchronized: true });
+    const wrapper = document.getElementById('canvas-wrapper');
+
+    let isDrawing = false;
+    let drawingTool = 'pen'; // 'pen' или 'eraser'
+    let penColor = '#1d4ed8';
+    let strokeWidth = 6;
+    let points = [];
+    let undoList = [];
+    const maxUndo = 15;
+
+    // Автоматическая подгонка разрешения холста без искажений
+    function resizeCanvas() {
+      const rect = wrapper.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
+
+      ctx.scale(dpr, dpr);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      restoreDrawingState();
+    }
+
+    function getPointerPos(e) {
+      const r = canvas.getBoundingClientRect();
+      return {
+        x: e.clientX - r.left,
+        y: e.clientY - r.top
+      };
+    }
+
+    // Сохранение снимка холста в историю
+    function pushUndoState() {
+      if (undoList.length >= maxUndo) undoList.shift();
+      undoList.push(canvas.toDataURL());
+    }
+
+    function undoCanvas() {
+      if (undoList.length > 0) {
+        const lastData = undoList.pop();
+        const img = new Image();
+        img.src = lastData;
+        img.onload = () => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1));
+          saveDrawingState();
+        };
+      }
+    }
+
+    function clearCanvas() {
+      pushUndoState();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      saveDrawingState();
+    }
+
+    function setDrawingTool(tool) {
+      drawingTool = tool;
+      document.getElementById('tool-pen-btn').classList.toggle('active', tool === 'pen');
+      document.getElementById('tool-eraser-btn').classList.toggle('active', tool === 'eraser');
+    }
+
+    function setDrawingColor(color, btn) {
+      setDrawingTool('pen');
+      penColor = color;
+      document.querySelectorAll('.color-picker-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function setStrokeWidth(w, btn) {
+      strokeWidth = w;
+      document.querySelectorAll('.width-selector-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function saveDrawingState() {
+      drawingsMap[curIndex] = canvas.toDataURL();
+    }
+
+    function restoreDrawingState() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      undoList = [];
+      if (drawingsMap[curIndex]) {
+        const img = new Image();
+        img.src = drawingsMap[curIndex];
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1));
+        };
+      }
+    }
+
+    // Обработка касания стилусом / пальцем (Pointer Events для интерактивных досок)
+    canvas.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      isDrawing = true;
+      canvas.setPointerCapture(e.pointerId);
+      pushUndoState();
+
+      const p = getPointerPos(e);
+      points = [p];
+
+      if (drawingTool === 'eraser') {
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, strokeWidth * 3.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      } else {
+        ctx.save();
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = penColor;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, strokeWidth / 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    });
+
+    canvas.addEventListener('pointermove', (e) => {
+      if (!isDrawing) return;
+      e.preventDefault();
+
+      // Поддержка Coalesced Events для сверхплавного отклика на сенсорных досках
+      const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+
+      for (let ev of events) {
+        const p = getPointerPos(ev);
+        points.push(p);
+
+        if (drawingTool === 'eraser') {
+          ctx.save();
+          ctx.globalCompositeOperation = 'destination-out';
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, strokeWidth * 3.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        } else {
+          ctx.save();
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.strokeStyle = penColor;
+          ctx.lineWidth = strokeWidth;
+
+          // Сглаживание траектории квадратичными кривыми Безье
+          if (points.length >= 3) {
+            const p1 = points[points.length - 2];
+            const p2 = points[points.length - 1];
+            const midX = (p1.x + p2.x) / 2;
+            const midY = (p1.y + p2.y) / 2;
+
+            ctx.beginPath();
+            ctx.moveTo(points[points.length - 3].x, points[points.length - 3].y);
+            ctx.quadraticCurveTo(p1.x, p1.y, midX, midY);
+            ctx.stroke();
+          } else {
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            ctx.lineTo(p.x, p.y);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+      }
+    });
+
+    function endPointer(e) {
+      if (isDrawing) {
+        isDrawing = false;
+        points = [];
+        saveDrawingState();
+      }
+    }
+
+    canvas.addEventListener('pointerup', endPointer);
+    canvas.addEventListener('pointercancel', endPointer);
+
+    window.addEventListener('resize', resizeCanvas);
+
+    // Старт приложения
+    window.addEventListener('DOMContentLoaded', () => {
+      resizeCanvas();
+      switchToTask(0);
+    });
+  </script>
+</body>
+</html>
